@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Condo Appraisal Extractor | 100% Row & Merge Accuracy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Sarabun', sans-serif; background-color: #f8fafc; }
+        h1, h2, h3, .font-heading { font-family: 'Prompt', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Top Navigation Bar -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <div>
+                    <h1 class="font-heading font-semibold text-lg text-slate-900 leading-tight">เครื่องมือปรับปรุงบัญชีราคาประเมินห้องชุด (DOC TO EXCEL)</h1>
+                    <p class="text-xs text-slate-500">รองรับการผสานเซลล์ (Rowspan/Colspan) และตารางต่อเนื่องข้ามหน้าอย่างแม่นยำ</p>
+                </div>
+            </div>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                Client-Side 100%
+            </span>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+
+        <!-- Step 1: Upload Zone -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 space-y-5">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="font-heading font-semibold text-base text-slate-800">1. นำเข้าไฟล์ Word (.docx)</h2>
+                    <p class="text-sm text-slate-500">ตัดชุดใหม่เมื่อพบ <span class="font-semibold text-indigo-600">"บัญชีราคาประเมินห้องชุดแนบท้าย"</span> หากไม่พบจะถือเป็นชุดข้อมูลต่อเนื่องกัน</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <label class="inline-flex items-center gap-2 text-xs text-slate-600 cursor-pointer select-none">
+                        <input type="checkbox" id="fillVerticalMergeCheck" checked class="rounded text-indigo-600 focus:ring-indigo-500">
+                        <span>เติมค่าอัตโนมัติกรณีผสานเซลล์แนวตั้ง (เช่น ชั้นที่คลุมหลายแถว)</span>
+                    </label>
+                    <button id="clearBtn" class="hidden text-sm text-rose-600 hover:text-rose-700 font-medium px-3 py-1.5 rounded-lg hover:bg-rose-50 transition">
+                        ล้างข้อมูลทั้งหมด
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dropzone -->
+            <label id="dropZone" class="group relative flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-indigo-200 hover:border-indigo-500 rounded-xl bg-indigo-50/30 hover:bg-indigo-50/60 transition-all cursor-pointer">
+                <div class="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
+                    <div class="w-10 h-10 mb-2.5 rounded-full bg-white shadow-sm border border-indigo-100 flex items-center justify-center text-indigo-600 group-hover:scale-105 transition-transform">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                    </div>
+                    <p class="text-sm text-slate-700 font-medium">
+                        <span class="text-indigo-600 font-semibold underline decoration-indigo-300 underline-offset-2">คลิกเพื่อเลือกไฟล์ .docx</span> หรือลากไฟล์มาวางที่นี่
+                    </p>
+                    <p class="text-xs text-slate-400 mt-1">เลือกได้ทั้งไฟล์เดียว หรือหลายไฟล์พร้อมกัน</p>
+                </div>
+                <input id="wordInput" type="file" accept=".docx" multiple class="hidden" />
+            </label>
+
+            <!-- File Sections & Condo Name Editor -->
+            <div id="fileCardsContainer" class="hidden pt-2 space-y-4"></div>
+        </div>
+
+        <!-- Step 2: Summary & Export Bar -->
+        <div id="actionSection" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="flex flex-wrap items-center gap-6">
+                <div>
+                    <span class="text-xs text-slate-400 block">จำนวนกลุ่มอาคารชุด</span>
+                    <span id="statSections" class="font-heading font-bold text-xl text-slate-800">0</span> <span class="text-xs text-slate-500">ชุด</span>
+                </div>
+                <div class="h-8 w-px bg-slate-200 hidden sm:block"></div>
+                <div>
+                    <span class="text-xs text-slate-400 block">จำนวนแถวข้อมูลตรงตามตาราง</span>
+                    <span id="statRows" class="font-heading font-bold text-xl text-indigo-600">0</span> <span class="text-xs text-slate-500">แถว</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+                <label class="inline-flex items-center gap-2 text-xs text-slate-600 bg-slate-100 px-3 py-2 rounded-lg cursor-pointer select-none">
+                    <input type="checkbox" id="cleanNumberCheck" checked class="rounded text-indigo-600 focus:ring-indigo-500">
+                    <span>แปลงราคาเป็นตัวเลข (ตัดลูกน้ำ)</span>
+                </label>
+                <button id="exportBtn" class="flex-1 sm:flex-initial bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-heading font-medium text-sm px-5 py-2.5 rounded-xl shadow-sm shadow-indigo-200 transition flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    ส่งออกไฟล์ Excel (.xlsx)
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 3: Result Preview Table -->
+        <div id="previewSection" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-50/50">
+                <div>
+                    <h2 class="font-heading font-semibold text-base text-slate-800">2. ตรวจสอบความถูกต้องของแถวข้อมูล (4 คอลัมน์มาตรฐาน)</h2>
+                    <p class="text-xs text-slate-500">สามารถคลิกแก้ไขข้อมูลในช่องตารางได้โดยตรงหากต้องการปรับแก้เฉพาะจุด</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="searchInput" placeholder="ค้นหาชื่อคอนโด / ชั้น / การใช้ประโยชน์..." class="text-xs border border-slate-300 rounded-lg px-3 py-1.5 w-64 focus:outline-none focus:border-indigo-500">
+                </div>
+            </div>
+
+            <div class="overflow-x-auto custom-scrollbar max-h-[540px]">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-100/95 backdrop-blur sticky top-0 z-10 text-xs font-heading font-semibold text-slate-700 uppercase tracking-wider border-b border-slate-200">
+                        <tr>
+                            <th class="py-3 px-4 w-14 text-center">แถวที่</th>
+                            <th class="py-3 px-4">CONDO_NAME</th>
+                            <th class="py-3 px-4">OFLEVEL</th>
+                            <th class="py-3 px-4">การใช้ประโยชน์</th>
+                            <th class="py-3 px-4 text-right">VAL_AMT_P_MET</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultTableBody" class="divide-y divide-slate-100 text-sm text-slate-700">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        let processedFiles = [];
+        let lastRawFiles = []; // เก็บไฟล์ต้นฉบับเผื่อกดสลับโหมดเติมค่าผสานเซลล์
+
+        const wordInput = document.getElementById('wordInput');
+        const dropZone = document.getElementById('dropZone');
+        const fileCardsContainer = document.getElementById('fileCardsContainer');
+        const actionSection = document.getElementById('actionSection');
+        const previewSection = document.getElementById('previewSection');
+        const resultTableBody = document.getElementById('resultTableBody');
+        const cleanNumberCheck = document.getElementById('cleanNumberCheck');
+        const fillVerticalMergeCheck = document.getElementById('fillVerticalMergeCheck');
+        const searchInput = document.getElementById('searchInput');
+
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, e => {
+                e.preventDefault();
+                dropZone.classList.add('border-indigo-500', 'bg-indigo-50');
+            });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, e => {
+                e.preventDefault();
+                dropZone.classList.remove('border-indigo-500', 'bg-indigo-50');
+            });
+        });
+        dropZone.addEventListener('drop', e => {
+            if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+        });
+        wordInput.addEventListener('change', e => {
+            if (e.target.files.length) handleFiles(e.target.files);
+            wordInput.value = '';
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            processedFiles = [];
+            lastRawFiles = [];
+            renderAll();
+        });
+
+        cleanNumberCheck.addEventListener('change', renderTable);
+        searchInput.addEventListener('input', renderTable);
+        fillVerticalMergeCheck.addEventListener('change', async () => {
+            if (lastRawFiles.length > 0) {
+                const tempFiles = [...lastRawFiles];
+                processedFiles = [];
+                lastRawFiles = [];
+                await handleFiles(tempFiles);
+            }
+        });
+
+        async function handleFiles(fileList) {
+            const files = Array.from(fileList).filter(f => f.name.toLowerCase().endsWith('.docx'));
+            if (files.length === 0) {
+                alert('กรุณาเลือกไฟล์นามสกุล .docx เท่านั้น');
+                return;
+            }
+
+            const fillMerge = fillVerticalMergeCheck.checked;
+
+            for (const file of files) {
+                try {
+                    lastRawFiles.push(file);
+                    const arrayBuffer = await file.arrayBuffer();
+                    const htmlResult = await mammoth.convertToHtml({ arrayBuffer });
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(htmlResult.value, 'text/html');
+
+                    const sections = splitDocumentWithContinuousSupport(doc, fillMerge);
+
+                    processedFiles.push({
+                        id: crypto.randomUUID(),
+                        fileName: file.name,
+                        sections: sections
+                    });
+                } catch (err) {
+                    console.error(err);
+                    alert(`ไม่สามารถอ่านไฟล์ ${file.name} ได้: ${err.message}`);
+                }
+            }
+
+            renderAll();
+        }
+
+        function splitDocumentWithContinuousSupport(doc, fillMerge) {
+            const bodyElements = Array.from(doc.body.children);
+            let rawSectionElements = [];
+            let currentElements = [];
+            let hasDelimiter = false;
+
+            bodyElements.forEach(el => {
+                const text = el.innerText || '';
+                if (text.includes('บัญชีราคาประเมินห้องชุดแนบท้าย')) {
+                    hasDelimiter = true;
+                    if (currentElements.length > 0) {
+                        rawSectionElements.push(currentElements);
+                        currentElements = [];
+                    }
+                }
+                currentElements.push(el);
+            });
+
+            if (currentElements.length > 0) {
+                rawSectionElements.push(currentElements);
+            }
+
+            let validSections = [];
+            let lastKnownCondoName = 'ไม่ระบุชื่ออาคารชุด';
+
+            rawSectionElements.forEach(elements => {
+                const sec = processSectionElements(elements, fillMerge, lastKnownCondoName);
+                if (sec.condoName && sec.condoName !== 'ไม่ระบุชื่ออาคารชุด') {
+                    lastKnownCondoName = sec.condoName;
+                }
+                if (sec.rows.length > 0) {
+                    validSections.push(sec);
+                }
+            });
+
+            if (!hasDelimiter || validSections.length === 0) {
+                const allLines = extractAllDocumentLines(doc);
+                const condoName = detectCondoNameFromLines(allLines) || 'ไม่ระบุชื่ออาคารชุด';
+                const rows = extractExactTableRows(doc, fillMerge);
+                if (rows.length > 0) {
+                    return [{ condoName: condoName, allLines: allLines, rows: rows }];
+                }
+            }
+
+            return validSections;
+        }
+
+        function processSectionElements(elements, fillMerge, fallbackCondoName) {
+            const parser = new DOMParser();
+            const container = document.createElement('div');
+            elements.forEach(el => container.appendChild(el.cloneNode(true)));
+            const subDoc = parser.parseFromString(container.innerHTML, 'text/html');
+
+            const allLines = extractAllDocumentLines(subDoc);
+            const detectedName = detectCondoNameFromLines(allLines);
+            const condoName = detectedName || fallbackCondoName;
+            const rows = extractExactTableRows(subDoc, fillMerge);
+
+            return {
+                condoName: condoName,
+                allLines: allLines,
+                rows: rows
+            };
+        }
+
+        function extractAllDocumentLines(doc) {
+            const lines = [];
+            const elements = doc.body.querySelectorAll('p, h1, h2, h3, h4, h5, h6, td, th, li');
+            
+            elements.forEach(el => {
+                if (el.querySelector('p, td, th')) return;
+                const innerLines = el.innerText.split(/\r?\n/);
+                innerLines.forEach(l => {
+                    const cleaned = l.replace(/\s+/g, ' ').trim();
+                    if (cleaned.length > 0) {
+                        lines.push(cleaned);
+                    }
+                });
+            });
+            return lines;
+        }
+
+        function detectCondoNameFromLines(allLines) {
+            let detected = '';
+            const subjectIdx = allLines.findIndex(l => l.includes('เรื่อง'));
+            if (subjectIdx !== -1 && allLines[subjectIdx + 1]) {
+                detected = allLines[subjectIdx + 1];
+            }
+
+            if (!detected) {
+                const fallbackLine = allLines.find(l => l.includes('อาคารชุด') && !l.includes('ราคาประเมิน'));
+                detected = fallbackLine || '';
+            }
+            return detected;
+        }
+
+        /**
+         * แปลงตาราง HTML ให้อยู่ในรูป 2D Matrix ที่ขยายค่า rowspan และ colspan ครบถ้วน
+         * เพื่อป้องกันปัญหาคอลัมน์เลื่อน 100%
+         */
+        function expandTableToExactMatrix(table, fillVerticalMerge) {
+            const trs = Array.from(table.querySelectorAll('tr'));
+            const matrix = [];
+
+            for (let r = 0; r < trs.length; r++) {
+                if (!matrix[r]) matrix[r] = [];
+                const cells = Array.from(trs[r].querySelectorAll('th, td'));
+                let cIdx = 0;
+
+                for (let i = 0; i < cells.length; i++) {
+                    // ข้ามช่องที่ถูกจองไว้จาก rowspan ของแถวบน
+                    while (matrix[r][cIdx] !== undefined) {
+                        cIdx++;
+                    }
+
+                    const cell = cells[i];
+                    const text = cell.innerText.replace(/\s+/g, ' ').trim();
+                    const rowspan = parseInt(cell.getAttribute('rowspan') || '1', 10);
+                    const colspan = parseInt(cell.getAttribute('colspan') || '1', 10);
+
+                    for (let rs = 0; rs < rowspan; rs++) {
+                        if (!matrix[r + rs]) matrix[r + rs] = [];
+                        for (let cs = 0; cs < colspan; cs++) {
+                            if (rs === 0) {
+                                matrix[r + rs][cIdx + cs] = text;
+                            } else {
+                                // กรณีผสานเซลล์แนวตั้ง: เติมค่าเดิมลงแถวล่าง หรือเว้นว่างตามการตั้งค่า
+                                matrix[r + rs][cIdx + cs] = fillVerticalMerge ? text : '';
+                            }
+                        }
+                    }
+                    cIdx += colspan;
+                }
+            }
+
+            // เติมช่องว่างที่อาจขาดหายให้ทุกแถวมีความยาวคอลัมน์เท่ากัน
+            const maxCols = matrix.reduce((max, row) => Math.max(max, row.length), 0);
+            for (let r = 0; r < matrix.length; r++) {
+                for (let c = 0; c < maxCols; c++) {
+                    if (matrix[r][c] === undefined) matrix[r][c] = '';
+                }
+            }
+
+            return matrix;
+        }
+
+        /**
+         * สกัดแถวข้อมูลอย่างแม่นยำ 100% รองรับหัวตารางหลายชั้น และตารางต่อเนื่องข้ามหน้า
+         */
+        function extractExactTableRows(doc, fillVerticalMerge) {
+            const tables = Array.from(doc.querySelectorAll('table'));
+            const results = [];
+            let persistentColMap = null; // จดจำตำแหน่งคอลัมน์ข้ามตาราง (กรณีตารางขึ้นหน้าใหม่โดยไม่มีหัวตาราง)
+
+            tables.forEach(table => {
+                const matrix = expandTableToExactMatrix(table, fillVerticalMerge);
+                if (matrix.length === 0) return;
+
+                let headerEndRow = -1;
+                let currentColMap = null;
+
+                // ตรวจสอบ 5 แถวแรกของตารางเพื่อหาตำแหน่งคอลัมน์ (รองรับหัวตารางซ้อน 2-3 บรรทัด)
+                const searchLimit = Math.min(5, matrix.length);
+                const maxCols = matrix[0].length;
+                let colHeadersCombined = new Array(maxCols).fill('');
+
+                for (let r = 0; r < searchLimit; r++) {
+                    for (let c = 0; c < maxCols; c++) {
+                        colHeadersCombined[c] = (colHeadersCombined[c] + ' ' + matrix[r][c]).trim();
+                    }
+
+                    const idxLevel = colHeadersCombined.findIndex(txt => txt.includes('ชั้นที่'));
+                    const idxUsage = colHeadersCombined.findIndex(txt => txt.includes('การใช้ประโยชน์'));
+                    const idxPrice = colHeadersCombined.findIndex(txt => 
+                        txt.includes('ราคาประเมินห้องชุด') || 
+                        txt.includes('บาทต่อตารางเมตร') ||
+                        txt.includes('ระเบียง/ที่วางแอร์')
+                    );
+
+                    if (idxLevel !== -1 && idxUsage !== -1 && idxPrice !== -1) {
+                        headerEndRow = r;
+                        currentColMap = { oflevel: idxLevel, usage: idxUsage, price: idxPrice };
+                        persistentColMap = currentColMap; // บันทึกไว้ใช้กับตารางหน้าถัดไป
+                        break;
+                    }
+                }
+
+                // กรณีเป็นตารางต่อเนื่องขึ้นหน้าใหม่ที่ไม่มีแถวหัวตารางซ้ำ
+                if (!currentColMap && persistentColMap) {
+                    // ตรวจสอบว่าตารางนี้มีจำนวนคอลัมน์เพียงพอและไม่ใช่ตารางส่วนหัวกระดาษ
+                    if (maxCols > Math.max(persistentColMap.oflevel, persistentColMap.usage, persistentColMap.price)) {
+                        currentColMap = persistentColMap;
+                        headerEndRow = -1; // เริ่มอ่านตั้งแต่แถวแรก (index 0)
+                    }
+                }
+
+                if (!currentColMap) return;
+
+                // วนลูปอ่านข้อมูลทีละแถวอย่างครบถ้วน
+                for (let r = headerEndRow + 1; r < matrix.length; r++) {
+                    const row = matrix[r];
+                    const oflevel = (row[currentColMap.oflevel] || '').trim();
+                    const usage = (row[currentColMap.usage] || '').trim();
+                    const priceRaw = (row[currentColMap.price] || '').trim();
+
+                    // 1. ข้ามแถวที่ว่างเปล่าทั้งหมด
+                    if (!oflevel && !usage && !priceRaw) continue;
+
+                    // 2. ข้ามแถวที่เป็นหัวตารางซ้ำกลางหน้า
+                    if (oflevel.includes('ชั้นที่') && usage.includes('การใช้ประโยชน์')) continue;
+                    if (priceRaw.includes('บาทต่อตารางเมตร') || priceRaw.includes('ราคาประเมินห้องชุด')) continue;
+
+                    // 3. ข้ามแถวที่เป็นเลขลำดับคอลัมน์ เช่น (1) (2) (3)
+                    if (/^\(\d+\)$/.test(oflevel) && /^\(\d+\)$/.test(usage)) continue;
+
+                    // 4. ข้ามแถวหมายเหตุท้ายตาราง (ที่มักผสานทุกคอลัมน์เข้าด้วยกันจนค่า 3 ช่องเหมือนกันหมด)
+                    if (oflevel === usage && usage === priceRaw && oflevel.startsWith('หมายเหตุ')) continue;
+
+                    results.push({
+                        oflevel: oflevel,
+                        usage: usage,
+                        priceRaw: priceRaw
+                    });
+                }
+            });
+
+            return results;
+        }
+
+        function formatPrice(raw, asNumber) {
+            if (!raw) return '';
+            const cleaned = raw.replace(/,/g, '').trim();
+            if (asNumber && !isNaN(cleaned) && cleaned !== '') {
+                return Number(cleaned);
+            }
+            return raw.trim();
+        }
+
+        function renderAll() {
+            let totalSections = 0;
+            processedFiles.forEach(f => totalSections += f.sections.length);
+
+            const hasData = totalSections > 0;
+            document.getElementById('clearBtn').classList.toggle('hidden', !hasData);
+            fileCardsContainer.classList.toggle('hidden', !hasData);
+            actionSection.classList.toggle('hidden', !hasData);
+            previewSection.classList.toggle('hidden', !hasData);
+
+            if (!hasData) return;
+
+            renderFileCards();
+            renderTable();
+        }
+
+        function renderFileCards() {
+            fileCardsContainer.innerHTML = '';
+            
+            processedFiles.forEach((fileObj) => {
+                const fileBox = document.createElement('div');
+                fileBox.className = 'p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3';
+                
+                fileBox.innerHTML = `
+                    <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                        <span class="text-xs font-semibold text-indigo-700">📄 ไฟล์: ${escapeHtml(fileObj.fileName)}</span>
+                        <span class="text-xs text-slate-500">พบ ${fileObj.sections.length} ชุดข้อมูล</span>
+                    </div>
+                `;
+
+                fileObj.sections.forEach((sec, sIdx) => {
+                    const secDiv = document.createElement('div');
+                    secDiv.className = 'p-3 bg-white rounded-lg border border-slate-200 space-y-2';
+
+                    const headerRow = document.createElement('div');
+                    headerRow.className = 'flex items-center justify-between text-xs';
+                    headerRow.innerHTML = `
+                        <span class="font-semibold text-slate-600">ชุดข้อมูลที่ ${sIdx + 1}</span>
+                        <span class="text-emerald-600 font-semibold">${sec.rows.length} แถว</span>
+                    `;
+
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = sec.condoName;
+                    input.className = 'w-full text-sm font-semibold text-indigo-900 bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 focus:outline-none focus:border-indigo-500 focus:bg-white';
+                    input.addEventListener('input', (e) => {
+                        sec.condoName = e.target.value;
+                        renderTable();
+                    });
+
+                    secDiv.appendChild(headerRow);
+                    secDiv.appendChild(input);
+                    fileBox.appendChild(secDiv);
+                });
+
+                fileCardsContainer.appendChild(fileBox);
+            });
+        }
+
+        function renderTable() {
+            const keyword = searchInput.value.toLowerCase().trim();
+            const asNumber = cleanNumberCheck.checked;
+            
+            let totalRows = 0;
+            let totalSectionsCount = 0;
+            resultTableBody.innerHTML = '';
+            let counter = 1;
+
+            const fragment = document.createDocumentFragment();
+
+            processedFiles.forEach(fileObj => {
+                fileObj.sections.forEach(sec => {
+                    totalSectionsCount++;
+                    sec.rows.forEach((r) => {
+                        totalRows++;
+                        const priceFormatted = formatPrice(r.priceRaw, asNumber);
+                        const displayPrice = typeof priceFormatted === 'number' 
+                            ? priceFormatted.toLocaleString('en-US', { maximumFractionDigits: 2 }) 
+                            : priceFormatted;
+
+                        if (keyword) {
+                            const match = 
+                                sec.condoName.toLowerCase().includes(keyword) ||
+                                r.oflevel.toLowerCase().includes(keyword) ||
+                                r.usage.toLowerCase().includes(keyword) ||
+                                String(displayPrice).toLowerCase().includes(keyword);
+                            if (!match) return;
+                        }
+
+                        const tr = document.createElement('tr');
+                        tr.className = 'hover:bg-indigo-50/40 transition-colors';
+
+                        // แจ้งเตือนสีอ่อนหากมีช่องใดช่องหนึ่งว่าง เพื่อให้ตรวจสอบง่าย
+                        const isIncomplete = !r.oflevel || !r.usage || !r.priceRaw;
+                        if (isIncomplete) {
+                            tr.classList.add('bg-amber-50/50');
+                        }
+
+                        tr.innerHTML = `
+                            <td class="py-2 px-4 text-center text-xs text-slate-400">${counter++}</td>
+                            <td class="py-2 px-4 font-medium text-slate-800">${escapeHtml(sec.condoName)}</td>
+                            <td class="py-2 px-4 text-slate-700" contenteditable="true" data-field="oflevel">${escapeHtml(r.oflevel)}</td>
+                            <td class="py-2 px-4 text-slate-700" contenteditable="true" data-field="usage">${escapeHtml(r.usage)}</td>
+                            <td class="py-2 px-4 text-right font-mono font-medium text-indigo-700" contenteditable="true" data-field="priceRaw">${escapeHtml(String(displayPrice))}</td>
+                        `;
+
+                        // รองรับการคลิกแก้ไขค่าในเซลล์โดยตรง
+                        tr.querySelectorAll('[contenteditable="true"]').forEach(cell => {
+                            cell.addEventListener('blur', (e) => {
+                                const field = e.target.getAttribute('data-field');
+                                r[field] = e.target.innerText.trim();
+                            });
+                        });
+
+                        fragment.appendChild(tr);
+                    });
+                });
+            });
+
+            document.getElementById('statSections').textContent = totalSectionsCount;
+            document.getElementById('statRows').textContent = totalRows.toLocaleString();
+
+            if (counter === 1) {
+                resultTableBody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-slate-400 text-sm">ไม่พบข้อมูลตารางที่ตรงกับเงื่อนไข</td></tr>`;
+            } else {
+                resultTableBody.appendChild(fragment);
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            const asNumber = cleanNumberCheck.checked;
+            const exportData = [];
+
+            exportData.push(['CONDO_NAME', 'OFLEVEL', 'การใช้ประโยชน์', 'VAL_AMT_P_MET']);
+
+            processedFiles.forEach(fileObj => {
+                fileObj.sections.forEach(sec => {
+                    sec.rows.forEach(r => {
+                        exportData.push([
+                            sec.condoName,
+                            r.oflevel,
+                            r.usage,
+                            formatPrice(r.priceRaw, asNumber)
+                        ]);
+                    });
+                });
+            });
+
+            if (exportData.length <= 1) {
+                alert('ไม่มีข้อมูลสำหรับส่งออก');
+                return;
+            }
+
+            const ws = XLSX.utils.aoa_to_sheet(exportData);
+            ws['!cols'] = [
+                { wch: 45 }, // CONDO_NAME
+                { wch: 15 }, // OFLEVEL
+                { wch: 25 }, // การใช้ประโยชน์
+                { wch: 18 }  // VAL_AMT_P_MET
+            ];
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Condo_Appraisal');
+
+            const today = new Date().toISOString().slice(0, 10);
+            XLSX.writeFile(wb, `Condo_Appraisal_${today}.xlsx`);
+        });
+    </script>
+</body>
+</html>
