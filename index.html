@@ -7,136 +7,280 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Sarabun', sans-serif; background-color: #f8fafc; }
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f1f5f9;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(14, 165, 233, 0.08) 0px, transparent 50%);
+            background-attachment: fixed;
+        }
         h1, h2, h3, .font-heading { font-family: 'Prompt', sans-serif; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .font-mono-num { font-family: 'JetBrains Mono', monospace; }
+
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 7px; height: 7px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f8fafc; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Editable Cell Highlight */
+        [contenteditable="true"] {
+            transition: all 0.15s ease;
+            border-radius: 6px;
+        }
+        [contenteditable="true"]:hover {
+            background-color: rgba(99, 102, 241, 0.06);
+            box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.25);
+        }
+        [contenteditable="true"]:focus {
+            outline: none;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 2px #6366f1, 0 2px 6px rgba(99, 102, 241, 0.15);
+        }
+
+        /* Animations */
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-card {
+            animation: slideUpFade 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.3); }
+            50% { box-shadow: 0 0 0 8px rgba(99, 102, 241, 0); }
+        }
+        .dropzone-active {
+            animation: pulseGlow 1.5s infinite;
+            border-color: #4f46e5 !important;
+            background-color: rgba(238, 242, 255, 0.85) !important;
+            transform: scale(1.005);
+        }
     </style>
 </head>
-<body class="text-slate-800 min-h-screen flex flex-col">
+<body class="text-slate-800 min-h-screen flex flex-col antialiased selection:bg-indigo-100 selection:text-indigo-900">
 
     <!-- Top Navigation Bar -->
-    <nav class="bg-white border-b border-slate-200 sticky top-0 z-30">
+    <nav class="bg-slate-900/95 backdrop-blur-md border-b border-slate-800 sticky top-0 z-30 shadow-md">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-sm">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <div class="flex items-center gap-3.5">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 ring-1 ring-white/20">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
                 </div>
                 <div>
-                    <h1 class="font-heading font-semibold text-lg text-slate-900 leading-tight">เครื่องมือปรับปรุงบัญชีราคาประเมินห้องชุด (DOC TO EXCEL)</h1>
-                    <p class="text-xs text-slate-500">รองรับการผสานเซลล์ (Rowspan/Colspan) และตารางต่อเนื่องข้ามหน้าอย่างแม่นยำ</p>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-heading font-semibold text-base sm:text-lg text-white tracking-tight">เครื่องมือปรับปรุงบัญชีราคาประเมินห้องชุด</h1>
+                        <span class="hidden md:inline-flex items-center px-2 py-0.5 rounded text-[10px] font-heading font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 uppercase tracking-wider">DOCX → XLSX</span>
+                    </div>
+                    <p class="text-xs text-slate-400">สกัดตารางอัตโนมัติ รองรับการผสานเซลล์ (Rowspan/Colspan) และตารางข้ามหน้าอย่างแม่นยำ</p>
                 </div>
             </div>
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                Client-Side 100%
-            </span>
+
+            <div class="flex items-center gap-3">
+                <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-300 border border-emerald-500/25">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                    </span>
+                    ประมวลผลในเครื่อง 100%
+                </div>
+            </div>
         </div>
     </nav>
 
     <!-- Main Content -->
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
 
-        <!-- Step 1: Upload Zone -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 space-y-5">
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h2 class="font-heading font-semibold text-base text-slate-800">1. นำเข้าไฟล์ Word (.docx)</h2>
-                    <p class="text-sm text-slate-500">ตัดชุดใหม่เมื่อพบ <span class="font-semibold text-indigo-600">"บัญชีราคาประเมินห้องชุดแนบท้าย"</span> หากไม่พบจะถือเป็นชุดข้อมูลต่อเนื่องกัน</p>
+        <!-- Step 1: Upload Zone Card -->
+        <section class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden transition-all">
+            <div class="px-6 py-4 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div class="flex items-start gap-3">
+                    <span class="flex-shrink-0 w-7 h-7 rounded-lg bg-indigo-600 text-white font-heading font-bold text-xs flex items-center justify-center shadow-sm shadow-indigo-200 mt-0.5">1</span>
+                    <div>
+                        <h2 class="font-heading font-semibold text-base text-slate-800">นำเข้าไฟล์บัญชีราคาประเมิน (.docx)</h2>
+                        <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+                            ระบบจะตัดชุดข้อมูลใหม่อัตโนมัติเมื่อพบคำว่า <span class="inline-block px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 font-medium border border-indigo-100">"บัญชีราคาประเมินห้องชุดแนบท้าย"</span>
+                        </p>
+                    </div>
                 </div>
-                <div class="flex items-center gap-4">
-                    <label class="inline-flex items-center gap-2 text-xs text-slate-600 cursor-pointer select-none">
-                        <input type="checkbox" id="fillVerticalMergeCheck" checked class="rounded text-indigo-600 focus:ring-indigo-500">
-                        <span>เติมค่าอัตโนมัติกรณีผสานเซลล์แนวตั้ง (เช่น ชั้นที่คลุมหลายแถว)</span>
+
+                <div class="flex flex-wrap items-center gap-3">
+                    <!-- Toggle Switch for Vertical Merge -->
+                    <label class="inline-flex items-center gap-2.5 bg-slate-100/80 hover:bg-slate-100 px-3.5 py-2 rounded-xl border border-slate-200/70 cursor-pointer select-none transition">
+                        <div class="relative inline-flex items-center">
+                            <input type="checkbox" id="fillVerticalMergeCheck" checked class="sr-only peer">
+                            <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                        </div>
+                        <span class="text-xs font-medium text-slate-700">เติมค่าเซลล์ผสานแนวตั้งอัตโนมัติ</span>
                     </label>
-                    <button id="clearBtn" class="hidden text-sm text-rose-600 hover:text-rose-700 font-medium px-3 py-1.5 rounded-lg hover:bg-rose-50 transition">
+
+                    <button id="clearBtn" class="hidden inline-flex items-center gap-1.5 text-xs font-heading font-medium text-rose-600 hover:text-white bg-rose-50 hover:bg-rose-600 border border-rose-200 hover:border-rose-600 px-3.5 py-2 rounded-xl transition-all duration-200">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         ล้างข้อมูลทั้งหมด
                     </button>
                 </div>
             </div>
 
-            <!-- Dropzone -->
-            <label id="dropZone" class="group relative flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-indigo-200 hover:border-indigo-500 rounded-xl bg-indigo-50/30 hover:bg-indigo-50/60 transition-all cursor-pointer">
-                <div class="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
-                    <div class="w-10 h-10 mb-2.5 rounded-full bg-white shadow-sm border border-indigo-100 flex items-center justify-center text-indigo-600 group-hover:scale-105 transition-transform">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+            <div class="p-6 space-y-5">
+                <!-- Interactive Dropzone -->
+                <label id="dropZone" class="group relative flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-indigo-200 hover:border-indigo-500 rounded-2xl bg-gradient-to-b from-indigo-50/40 to-slate-50/40 hover:from-indigo-50/80 hover:to-indigo-50/30 transition-all duration-200 cursor-pointer overflow-hidden">
+                    <!-- Decorative background pattern -->
+                    <div class="absolute inset-0 opacity-[0.03] pointer-events-none" style="background-image: radial-gradient(#4f46e5 1px, transparent 1px); background-size: 16px 16px;"></div>
+                    
+                    <div class="relative flex flex-col items-center justify-center text-center px-4">
+                        <div class="w-12 h-12 mb-3 rounded-2xl bg-white shadow-md shadow-indigo-100 border border-indigo-100 flex items-center justify-center text-indigo-600 group-hover:scale-110 group-hover:-translate-y-0.5 transition-all duration-200">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                        </div>
+                        <p class="text-sm text-slate-700 font-medium">
+                            <span class="text-indigo-600 font-heading font-semibold group-hover:underline decoration-indigo-400 underline-offset-4">คลิกเพื่อเลือกไฟล์ .docx</span> หรือลากไฟล์มาวางในกรอบนี้
+                        </p>
+                        <p class="text-xs text-slate-400 mt-1">รองรับการนำเข้าพร้อมกันหลายไฟล์ • ข้อมูลปลอดภัยไม่ส่งออกนอกเบราว์เซอร์</p>
                     </div>
-                    <p class="text-sm text-slate-700 font-medium">
-                        <span class="text-indigo-600 font-semibold underline decoration-indigo-300 underline-offset-2">คลิกเพื่อเลือกไฟล์ .docx</span> หรือลากไฟล์มาวางที่นี่
-                    </p>
-                    <p class="text-xs text-slate-400 mt-1">เลือกได้ทั้งไฟล์เดียว หรือหลายไฟล์พร้อมกัน</p>
-                </div>
-                <input id="wordInput" type="file" accept=".docx" multiple class="hidden" />
-            </label>
-
-            <!-- File Sections & Condo Name Editor -->
-            <div id="fileCardsContainer" class="hidden pt-2 space-y-4"></div>
-        </div>
-
-        <!-- Step 2: Summary & Export Bar -->
-        <div id="actionSection" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div class="flex flex-wrap items-center gap-6">
-                <div>
-                    <span class="text-xs text-slate-400 block">จำนวนกลุ่มอาคารชุด</span>
-                    <span id="statSections" class="font-heading font-bold text-xl text-slate-800">0</span> <span class="text-xs text-slate-500">ชุด</span>
-                </div>
-                <div class="h-8 w-px bg-slate-200 hidden sm:block"></div>
-                <div>
-                    <span class="text-xs text-slate-400 block">จำนวนแถวข้อมูลตรงตามตาราง</span>
-                    <span id="statRows" class="font-heading font-bold text-xl text-indigo-600">0</span> <span class="text-xs text-slate-500">แถว</span>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-3 w-full sm:w-auto">
-                <label class="inline-flex items-center gap-2 text-xs text-slate-600 bg-slate-100 px-3 py-2 rounded-lg cursor-pointer select-none">
-                    <input type="checkbox" id="cleanNumberCheck" checked class="rounded text-indigo-600 focus:ring-indigo-500">
-                    <span>แปลงราคาเป็นตัวเลข (ตัดลูกน้ำ)</span>
+                    <input id="wordInput" type="file" accept=".docx" multiple class="hidden" />
                 </label>
-                <button id="exportBtn" class="flex-1 sm:flex-initial bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-heading font-medium text-sm px-5 py-2.5 rounded-xl shadow-sm shadow-indigo-200 transition flex items-center justify-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                    ส่งออกไฟล์ Excel (.xlsx)
-                </button>
+
+                <!-- Processing Indicator -->
+                <div id="loadingIndicator" class="hidden items-center justify-center gap-3 py-3 px-4 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700 text-sm font-medium">
+                    <svg class="animate-spin h-4 w-4 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>กำลังวิเคราะห์โครงสร้างตารางและผสานเซลล์...</span>
+                </div>
+
+                <!-- File Sections & Condo Name Editor -->
+                <div id="fileCardsContainer" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4 pt-1"></div>
             </div>
-        </div>
+        </section>
+
+        <!-- Step 2: KPI Dashboard & Export Bar -->
+        <section id="actionSection" class="hidden animate-card bg-white/95 backdrop-blur-sm rounded-2xl shadow-sm border border-slate-200/80 p-5">
+            <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-5">
+                
+                <!-- KPI Stats Grid -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 flex-1">
+                    <div class="bg-slate-50/90 border border-slate-200/70 rounded-xl px-4 py-2.5">
+                        <span class="text-[11px] font-medium text-slate-400 block">ไฟล์ที่นำเข้า</span>
+                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                            <span id="statFiles" class="font-heading font-bold text-xl text-slate-800">0</span>
+                            <span class="text-xs text-slate-500">ไฟล์</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50/90 border border-slate-200/70 rounded-xl px-4 py-2.5">
+                        <span class="text-[11px] font-medium text-slate-400 block">กลุ่มอาคารชุด</span>
+                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                            <span id="statSections" class="font-heading font-bold text-xl text-slate-800">0</span>
+                            <span class="text-xs text-slate-500">ชุด</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-indigo-50/70 border border-indigo-100 rounded-xl px-4 py-2.5">
+                        <span class="text-[11px] font-medium text-indigo-500 block">แถวข้อมูลทั้งหมด</span>
+                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                            <span id="statRows" class="font-heading font-bold text-xl text-indigo-700">0</span>
+                            <span class="text-xs text-indigo-500">แถว</span>
+                        </div>
+                    </div>
+
+                    <div id="incompleteStatBox" class="bg-emerald-50/70 border border-emerald-100 rounded-xl px-4 py-2.5 transition-colors">
+                        <span id="incompleteStatLabel" class="text-[11px] font-medium text-emerald-600 block">สถานะความครบถ้วน</span>
+                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                            <span id="statIncomplete" class="font-heading font-bold text-xl text-emerald-700">สมบูรณ์</span>
+                            <span id="statIncompleteUnit" class="text-xs text-emerald-600">100%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export & Options -->
+                <div class="flex flex-wrap sm:flex-nowrap items-center gap-3 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+                    <label class="inline-flex items-center gap-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200/70 px-3.5 py-2.5 rounded-xl cursor-pointer select-none transition">
+                        <input type="checkbox" id="cleanNumberCheck" checked class="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+                        <span>แปลงราคาเป็นตัวเลข</span>
+                    </label>
+
+                    <button id="copyTableBtn" title="คัดลอกข้อมูลทั้งหมดเพื่อวางใน Excel" class="inline-flex items-center justify-center gap-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-heading font-medium text-xs sm:text-sm px-4 py-2.5 rounded-xl shadow-xs transition">
+                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                        <span>คัดลอก</span>
+                    </button>
+
+                    <button id="exportBtn" class="flex-1 sm:flex-initial bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 active:scale-[0.99] text-white font-heading font-medium text-sm px-5 py-2.5 rounded-xl shadow-md shadow-indigo-500/25 transition-all flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        <span>ส่งออก Excel (.xlsx)</span>
+                    </button>
+                </div>
+            </div>
+        </section>
 
         <!-- Step 3: Result Preview Table -->
-        <div id="previewSection" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-50/50">
-                <div>
-                    <h2 class="font-heading font-semibold text-base text-slate-800">2. ตรวจสอบความถูกต้องของแถวข้อมูล (4 คอลัมน์มาตรฐาน)</h2>
-                    <p class="text-xs text-slate-500">สามารถคลิกแก้ไขข้อมูลในช่องตารางได้โดยตรงหากต้องการปรับแก้เฉพาะจุด</p>
+        <section id="previewSection" class="hidden animate-card bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-gradient-to-r from-slate-50 to-white">
+                <div class="flex items-start gap-3">
+                    <span class="flex-shrink-0 w-7 h-7 rounded-lg bg-slate-800 text-white font-heading font-bold text-xs flex items-center justify-center mt-0.5">2</span>
+                    <div>
+                        <h2 class="font-heading font-semibold text-base text-slate-800">ตรวจสอบและแก้ไขข้อมูล (4 คอลัมน์มาตรฐาน)</h2>
+                        <p class="text-xs text-slate-500">คลิกที่เซลล์ข้อมูลในคอลัมน์ <span class="font-medium text-slate-700">OFLEVEL</span>, <span class="font-medium text-slate-700">การใช้ประโยชน์</span> หรือ <span class="font-medium text-slate-700">ราคา</span> เพื่อพิมพ์แก้ไขได้ทันที</p>
+                    </div>
                 </div>
-                <div class="flex items-center gap-2">
-                    <input type="text" id="searchInput" placeholder="ค้นหาชื่อคอนโด / ชั้น / การใช้ประโยชน์..." class="text-xs border border-slate-300 rounded-lg px-3 py-1.5 w-64 focus:outline-none focus:border-indigo-500">
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <!-- Filter Pills -->
+                    <div class="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200/70">
+                        <button type="button" id="filterAllBtn" class="px-3 py-1 rounded-lg text-xs font-heading font-medium bg-white text-indigo-700 shadow-xs transition">
+                            ทั้งหมด
+                        </button>
+                        <button type="button" id="filterIncompleteBtn" class="px-3 py-1 rounded-lg text-xs font-heading font-medium text-slate-600 hover:text-slate-900 transition flex items-center gap-1">
+                            <span>รอตรวจสอบ</span>
+                            <span id="badgeIncompleteCount" class="hidden px-1.5 py-0.2 rounded-full text-[10px] bg-amber-100 text-amber-800 font-bold">0</span>
+                        </button>
+                    </div>
+
+                    <!-- Search Box -->
+                    <div class="relative">
+                        <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        <input type="text" id="searchInput" placeholder="ค้นหาคอนโด / ชั้น / การใช้ประโยชน์..." class="text-xs bg-white border border-slate-300 rounded-xl pl-9 pr-3 py-2 w-60 sm:w-64 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition">
+                    </div>
                 </div>
             </div>
 
-            <div class="overflow-x-auto custom-scrollbar max-h-[540px]">
+            <div class="overflow-x-auto custom-scrollbar max-h-[560px]">
                 <table class="w-full text-left border-collapse">
-                    <thead class="bg-slate-100/95 backdrop-blur sticky top-0 z-10 text-xs font-heading font-semibold text-slate-700 uppercase tracking-wider border-b border-slate-200">
+                    <thead class="bg-slate-800 text-slate-100 sticky top-0 z-10 text-xs font-heading font-medium uppercase tracking-wider shadow-sm">
                         <tr>
-                            <th class="py-3 px-4 w-14 text-center">แถวที่</th>
-                            <th class="py-3 px-4">CONDO_NAME</th>
-                            <th class="py-3 px-4">OFLEVEL</th>
-                            <th class="py-3 px-4">การใช้ประโยชน์</th>
-                            <th class="py-3 px-4 text-right">VAL_AMT_P_MET</th>
+                            <th class="py-3.5 px-4 w-16 text-center text-slate-400">#</th>
+                            <th class="py-3.5 px-4">CONDO_NAME</th>
+                            <th class="py-3.5 px-4">OFLEVEL</th>
+                            <th class="py-3.5 px-4">การใช้ประโยชน์</th>
+                            <th class="py-3.5 px-4 text-right">VAL_AMT_P_MET</th>
                         </tr>
                     </thead>
                     <tbody id="resultTableBody" class="divide-y divide-slate-100 text-sm text-slate-700">
                     </tbody>
                 </table>
             </div>
-        </div>
+        </section>
 
     </main>
+
+    <!-- Footer -->
+    <footer class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 text-center sm:flex sm:items-center sm:justify-between text-xs text-slate-400 border-t border-slate-200/60 mt-8">
+        <p>ระบบสกัดข้อมูลบัญชีราคาประเมินห้องชุด (Client-Side Document Parser)</p>
+        <p class="mt-1 sm:mt-0">รองรับโครงสร้างตารางมาตรฐานกรมธนารักษ์ • ไม่มีการอัปโหลดไฟล์ขึ้นเซิร์ฟเวอร์</p>
+    </footer>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
     <script>
         let processedFiles = [];
         let lastRawFiles = []; // เก็บไฟล์ต้นฉบับเผื่อกดสลับโหมดเติมค่าผสานเซลล์
+        let onlyIncompleteFilter = false;
 
         const wordInput = document.getElementById('wordInput');
         const dropZone = document.getElementById('dropZone');
@@ -147,17 +291,51 @@
         const cleanNumberCheck = document.getElementById('cleanNumberCheck');
         const fillVerticalMergeCheck = document.getElementById('fillVerticalMergeCheck');
         const searchInput = document.getElementById('searchInput');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const filterAllBtn = document.getElementById('filterAllBtn');
+        const filterIncompleteBtn = document.getElementById('filterIncompleteBtn');
 
+        // Toast Helper
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            const styles = {
+                success: 'bg-slate-900 text-white border-emerald-500/40',
+                warning: 'bg-amber-950 text-amber-100 border-amber-500/40',
+                error: 'bg-rose-950 text-rose-100 border-rose-500/40'
+            };
+            const icons = {
+                success: `<svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`,
+                warning: `<svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`,
+                error: `<svg class="w-4 h-4 text-rose-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>`
+            };
+
+            toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl border shadow-xl text-xs sm:text-sm font-medium transition-all duration-300 translate-y-2 opacity-0 ${styles[type] || styles.success}`;
+            toast.innerHTML = `${icons[type] || icons.success}<span>${escapeHtml(message)}</span>`;
+            container.appendChild(toast);
+
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3200);
+        }
+
+        // Drag & Drop Events
         ['dragenter', 'dragover'].forEach(evt => {
             dropZone.addEventListener(evt, e => {
                 e.preventDefault();
-                dropZone.classList.add('border-indigo-500', 'bg-indigo-50');
+                dropZone.classList.add('dropzone-active');
             });
         });
         ['dragleave', 'drop'].forEach(evt => {
             dropZone.addEventListener(evt, e => {
                 e.preventDefault();
-                dropZone.classList.remove('border-indigo-500', 'bg-indigo-50');
+                dropZone.classList.remove('dropzone-active');
             });
         });
         dropZone.addEventListener('drop', e => {
@@ -171,8 +349,33 @@
         document.getElementById('clearBtn').addEventListener('click', () => {
             processedFiles = [];
             lastRawFiles = [];
+            onlyIncompleteFilter = false;
+            updateFilterButtonsUI();
             renderAll();
+            showToast('ล้างข้อมูลทั้งหมดเรียบร้อยแล้ว', 'success');
         });
+
+        // Filter Pills Events
+        filterAllBtn.addEventListener('click', () => {
+            onlyIncompleteFilter = false;
+            updateFilterButtonsUI();
+            renderTable();
+        });
+        filterIncompleteBtn.addEventListener('click', () => {
+            onlyIncompleteFilter = true;
+            updateFilterButtonsUI();
+            renderTable();
+        });
+
+        function updateFilterButtonsUI() {
+            if (!onlyIncompleteFilter) {
+                filterAllBtn.className = 'px-3 py-1 rounded-lg text-xs font-heading font-medium bg-white text-indigo-700 shadow-xs transition';
+                filterIncompleteBtn.className = 'px-3 py-1 rounded-lg text-xs font-heading font-medium text-slate-600 hover:text-slate-900 transition flex items-center gap-1';
+            } else {
+                filterAllBtn.className = 'px-3 py-1 rounded-lg text-xs font-heading font-medium text-slate-600 hover:text-slate-900 transition';
+                filterIncompleteBtn.className = 'px-3 py-1 rounded-lg text-xs font-heading font-medium bg-amber-500 text-white shadow-xs transition flex items-center gap-1';
+            }
+        }
 
         cleanNumberCheck.addEventListener('change', renderTable);
         searchInput.addEventListener('input', renderTable);
@@ -181,18 +384,28 @@
                 const tempFiles = [...lastRawFiles];
                 processedFiles = [];
                 lastRawFiles = [];
-                await handleFiles(tempFiles);
+                await handleFiles(tempFiles, true);
+                showToast(
+                    fillVerticalMergeCheck.checked 
+                        ? 'เปิดการเติมค่าเซลล์ผสานแนวตั้งอัตโนมัติ' 
+                        : 'ปิดการเติมค่าเซลล์ผสานแนวตั้ง (คงค่าว่างตามต้นฉบับ)',
+                    'success'
+                );
             }
         });
 
-        async function handleFiles(fileList) {
+        async function handleFiles(fileList, isReprocess = false) {
             const files = Array.from(fileList).filter(f => f.name.toLowerCase().endsWith('.docx'));
             if (files.length === 0) {
-                alert('กรุณาเลือกไฟล์นามสกุล .docx เท่านั้น');
+                showToast('กรุณาเลือกไฟล์นามสกุล .docx เท่านั้น', 'warning');
                 return;
             }
 
+            loadingIndicator.classList.remove('hidden');
+            loadingIndicator.classList.add('flex');
+
             const fillMerge = fillVerticalMergeCheck.checked;
+            let addedCount = 0;
 
             for (const file of files) {
                 try {
@@ -209,13 +422,20 @@
                         fileName: file.name,
                         sections: sections
                     });
+                    addedCount++;
                 } catch (err) {
                     console.error(err);
-                    alert(`ไม่สามารถอ่านไฟล์ ${file.name} ได้: ${err.message}`);
+                    showToast(`ไม่สามารถอ่านไฟล์ ${file.name} ได้: ${err.message}`, 'error');
                 }
             }
 
+            loadingIndicator.classList.add('hidden');
+            loadingIndicator.classList.remove('flex');
+
             renderAll();
+            if (!isReprocess && addedCount > 0) {
+                showToast(`นำเข้าและประมวลผลสำเร็จ ${addedCount} ไฟล์`, 'success');
+            }
         }
 
         function splitDocumentWithContinuousSupport(doc, fillMerge) {
@@ -328,7 +548,6 @@
                 let cIdx = 0;
 
                 for (let i = 0; i < cells.length; i++) {
-                    // ข้ามช่องที่ถูกจองไว้จาก rowspan ของแถวบน
                     while (matrix[r][cIdx] !== undefined) {
                         cIdx++;
                     }
@@ -344,7 +563,6 @@
                             if (rs === 0) {
                                 matrix[r + rs][cIdx + cs] = text;
                             } else {
-                                // กรณีผสานเซลล์แนวตั้ง: เติมค่าเดิมลงแถวล่าง หรือเว้นว่างตามการตั้งค่า
                                 matrix[r + rs][cIdx + cs] = fillVerticalMerge ? text : '';
                             }
                         }
@@ -353,7 +571,6 @@
                 }
             }
 
-            // เติมช่องว่างที่อาจขาดหายให้ทุกแถวมีความยาวคอลัมน์เท่ากัน
             const maxCols = matrix.reduce((max, row) => Math.max(max, row.length), 0);
             for (let r = 0; r < matrix.length; r++) {
                 for (let c = 0; c < maxCols; c++) {
@@ -370,7 +587,7 @@
         function extractExactTableRows(doc, fillVerticalMerge) {
             const tables = Array.from(doc.querySelectorAll('table'));
             const results = [];
-            let persistentColMap = null; // จดจำตำแหน่งคอลัมน์ข้ามตาราง (กรณีตารางขึ้นหน้าใหม่โดยไม่มีหัวตาราง)
+            let persistentColMap = null;
 
             tables.forEach(table => {
                 const matrix = expandTableToExactMatrix(table, fillVerticalMerge);
@@ -379,7 +596,6 @@
                 let headerEndRow = -1;
                 let currentColMap = null;
 
-                // ตรวจสอบ 5 แถวแรกของตารางเพื่อหาตำแหน่งคอลัมน์ (รองรับหัวตารางซ้อน 2-3 บรรทัด)
                 const searchLimit = Math.min(5, matrix.length);
                 const maxCols = matrix[0].length;
                 let colHeadersCombined = new Array(maxCols).fill('');
@@ -400,40 +616,30 @@
                     if (idxLevel !== -1 && idxUsage !== -1 && idxPrice !== -1) {
                         headerEndRow = r;
                         currentColMap = { oflevel: idxLevel, usage: idxUsage, price: idxPrice };
-                        persistentColMap = currentColMap; // บันทึกไว้ใช้กับตารางหน้าถัดไป
+                        persistentColMap = currentColMap;
                         break;
                     }
                 }
 
-                // กรณีเป็นตารางต่อเนื่องขึ้นหน้าใหม่ที่ไม่มีแถวหัวตารางซ้ำ
                 if (!currentColMap && persistentColMap) {
-                    // ตรวจสอบว่าตารางนี้มีจำนวนคอลัมน์เพียงพอและไม่ใช่ตารางส่วนหัวกระดาษ
                     if (maxCols > Math.max(persistentColMap.oflevel, persistentColMap.usage, persistentColMap.price)) {
                         currentColMap = persistentColMap;
-                        headerEndRow = -1; // เริ่มอ่านตั้งแต่แถวแรก (index 0)
+                        headerEndRow = -1;
                     }
                 }
 
                 if (!currentColMap) return;
 
-                // วนลูปอ่านข้อมูลทีละแถวอย่างครบถ้วน
                 for (let r = headerEndRow + 1; r < matrix.length; r++) {
                     const row = matrix[r];
                     const oflevel = (row[currentColMap.oflevel] || '').trim();
                     const usage = (row[currentColMap.usage] || '').trim();
                     const priceRaw = (row[currentColMap.price] || '').trim();
 
-                    // 1. ข้ามแถวที่ว่างเปล่าทั้งหมด
                     if (!oflevel && !usage && !priceRaw) continue;
-
-                    // 2. ข้ามแถวที่เป็นหัวตารางซ้ำกลางหน้า
                     if (oflevel.includes('ชั้นที่') && usage.includes('การใช้ประโยชน์')) continue;
                     if (priceRaw.includes('บาทต่อตารางเมตร') || priceRaw.includes('ราคาประเมินห้องชุด')) continue;
-
-                    // 3. ข้ามแถวที่เป็นเลขลำดับคอลัมน์ เช่น (1) (2) (3)
                     if (/^\(\d+\)$/.test(oflevel) && /^\(\d+\)$/.test(usage)) continue;
-
-                    // 4. ข้ามแถวหมายเหตุท้ายตาราง (ที่มักผสานทุกคอลัมน์เข้าด้วยกันจนค่า 3 ช่องเหมือนกันหมด)
                     if (oflevel === usage && usage === priceRaw && oflevel.startsWith('หมายเหตุ')) continue;
 
                     results.push({
@@ -456,6 +662,16 @@
             return raw.trim();
         }
 
+        function removeFileByIndex(fileIndex) {
+            const removedName = processedFiles[fileIndex]?.fileName;
+            processedFiles.splice(fileIndex, 1);
+            lastRawFiles.splice(fileIndex, 1);
+            renderAll();
+            if (removedName) {
+                showToast(`ลบไฟล์ "${removedName}" ออกแล้ว`, 'success');
+            }
+        }
+
         function renderAll() {
             let totalSections = 0;
             processedFiles.forEach(f => totalSections += f.sections.length);
@@ -475,32 +691,46 @@
         function renderFileCards() {
             fileCardsContainer.innerHTML = '';
             
-            processedFiles.forEach((fileObj) => {
+            processedFiles.forEach((fileObj, fIdx) => {
                 const fileBox = document.createElement('div');
-                fileBox.className = 'p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3';
+                fileBox.className = 'animate-card p-4 rounded-2xl border border-slate-200/90 bg-gradient-to-br from-slate-50 to-white shadow-2xs space-y-3';
                 
-                fileBox.innerHTML = `
-                    <div class="flex items-center justify-between border-b border-slate-200 pb-2">
-                        <span class="text-xs font-semibold text-indigo-700">📄 ไฟล์: ${escapeHtml(fileObj.fileName)}</span>
-                        <span class="text-xs text-slate-500">พบ ${fileObj.sections.length} ชุดข้อมูล</span>
+                const topBar = document.createElement('div');
+                topBar.className = 'flex items-center justify-between border-b border-slate-200/70 pb-2.5 gap-2';
+                topBar.innerHTML = `
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        </span>
+                        <span class="text-xs font-heading font-semibold text-slate-800 truncate" title="${escapeHtml(fileObj.fileName)}">${escapeHtml(fileObj.fileName)}</span>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <span class="px-2 py-0.5 rounded-md text-[11px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">${fileObj.sections.length} ชุดข้อมูล</span>
+                        <button type="button" class="remove-file-btn text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition" title="ลบไฟล์นี้">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
                     </div>
                 `;
 
+                topBar.querySelector('.remove-file-btn').addEventListener('click', () => removeFileByIndex(fIdx));
+                fileBox.appendChild(topBar);
+
                 fileObj.sections.forEach((sec, sIdx) => {
                     const secDiv = document.createElement('div');
-                    secDiv.className = 'p-3 bg-white rounded-lg border border-slate-200 space-y-2';
+                    secDiv.className = 'p-3 bg-white rounded-xl border border-slate-200/80 space-y-1.5 shadow-2xs';
 
                     const headerRow = document.createElement('div');
                     headerRow.className = 'flex items-center justify-between text-xs';
                     headerRow.innerHTML = `
-                        <span class="font-semibold text-slate-600">ชุดข้อมูลที่ ${sIdx + 1}</span>
-                        <span class="text-emerald-600 font-semibold">${sec.rows.length} แถว</span>
+                        <span class="font-heading font-medium text-slate-500">ชุดที่ ${sIdx + 1} • ชื่ออาคารชุด (CONDO_NAME)</span>
+                        <span class="text-emerald-700 bg-emerald-50 border border-emerald-200/70 px-2 py-0.5 rounded-md font-heading font-semibold text-[11px]">${sec.rows.length} แถว</span>
                     `;
 
                     const input = document.createElement('input');
                     input.type = 'text';
                     input.value = sec.condoName;
-                    input.className = 'w-full text-sm font-semibold text-indigo-900 bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 focus:outline-none focus:border-indigo-500 focus:bg-white';
+                    input.placeholder = 'ระบุชื่ออาคารชุด...';
+                    input.className = 'w-full text-sm font-semibold text-indigo-950 bg-slate-50/80 border border-slate-300/90 rounded-lg px-3 py-1.5 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition';
                     input.addEventListener('input', (e) => {
                         sec.condoName = e.target.value;
                         renderTable();
@@ -521,6 +751,7 @@
             
             let totalRows = 0;
             let totalSectionsCount = 0;
+            let incompleteCount = 0;
             resultTableBody.innerHTML = '';
             let counter = 1;
 
@@ -531,6 +762,11 @@
                     totalSectionsCount++;
                     sec.rows.forEach((r) => {
                         totalRows++;
+                        const isIncomplete = !r.oflevel || !r.usage || !r.priceRaw;
+                        if (isIncomplete) incompleteCount++;
+
+                        if (onlyIncompleteFilter && !isIncomplete) return;
+
                         const priceFormatted = formatPrice(r.priceRaw, asNumber);
                         const displayPrice = typeof priceFormatted === 'number' 
                             ? priceFormatted.toLocaleString('en-US', { maximumFractionDigits: 2 }) 
@@ -546,27 +782,28 @@
                         }
 
                         const tr = document.createElement('tr');
-                        tr.className = 'hover:bg-indigo-50/40 transition-colors';
+                        tr.className = 'group hover:bg-indigo-50/50 transition-colors';
 
-                        // แจ้งเตือนสีอ่อนหากมีช่องใดช่องหนึ่งว่าง เพื่อให้ตรวจสอบง่าย
-                        const isIncomplete = !r.oflevel || !r.usage || !r.priceRaw;
                         if (isIncomplete) {
-                            tr.classList.add('bg-amber-50/50');
+                            tr.classList.add('bg-amber-50/70');
                         }
 
                         tr.innerHTML = `
-                            <td class="py-2 px-4 text-center text-xs text-slate-400">${counter++}</td>
-                            <td class="py-2 px-4 font-medium text-slate-800">${escapeHtml(sec.condoName)}</td>
-                            <td class="py-2 px-4 text-slate-700" contenteditable="true" data-field="oflevel">${escapeHtml(r.oflevel)}</td>
-                            <td class="py-2 px-4 text-slate-700" contenteditable="true" data-field="usage">${escapeHtml(r.usage)}</td>
-                            <td class="py-2 px-4 text-right font-mono font-medium text-indigo-700" contenteditable="true" data-field="priceRaw">${escapeHtml(String(displayPrice))}</td>
+                            <td class="py-2.5 px-4 text-center text-xs font-mono-num text-slate-400 group-hover:text-indigo-500">${counter++}</td>
+                            <td class="py-2.5 px-4 font-medium text-slate-800">${escapeHtml(sec.condoName)}</td>
+                            <td class="py-2.5 px-4 text-slate-700" contenteditable="true" data-field="oflevel">${escapeHtml(r.oflevel)}</td>
+                            <td class="py-2.5 px-4 text-slate-700" contenteditable="true" data-field="usage">${escapeHtml(r.usage)}</td>
+                            <td class="py-2.5 px-4 text-right font-mono-num font-semibold text-indigo-700" contenteditable="true" data-field="priceRaw">${escapeHtml(String(displayPrice))}</td>
                         `;
 
-                        // รองรับการคลิกแก้ไขค่าในเซลล์โดยตรง
                         tr.querySelectorAll('[contenteditable="true"]').forEach(cell => {
                             cell.addEventListener('blur', (e) => {
                                 const field = e.target.getAttribute('data-field');
                                 r[field] = e.target.innerText.trim();
+                                // อัปเดตสถานะแถวทันทีหลังแก้ไข
+                                const nowIncomplete = !r.oflevel || !r.usage || !r.priceRaw;
+                                tr.classList.toggle('bg-amber-50/70', nowIncomplete);
+                                updateIncompleteCounters();
                             });
                         });
 
@@ -575,13 +812,62 @@
                 });
             });
 
+            document.getElementById('statFiles').textContent = processedFiles.length;
             document.getElementById('statSections').textContent = totalSectionsCount;
             document.getElementById('statRows').textContent = totalRows.toLocaleString();
+            updateIncompleteUI(incompleteCount);
 
             if (counter === 1) {
-                resultTableBody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-slate-400 text-sm">ไม่พบข้อมูลตารางที่ตรงกับเงื่อนไข</td></tr>`;
+                resultTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="py-12 text-center">
+                            <div class="inline-flex flex-col items-center text-slate-400">
+                                <svg class="w-8 h-8 mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <span class="text-sm font-medium text-slate-500">ไม่พบรายการข้อมูลที่ตรงกับเงื่อนไขการกรอง</span>
+                            </div>
+                        </td>
+                    </tr>`;
             } else {
                 resultTableBody.appendChild(fragment);
+            }
+        }
+
+        function updateIncompleteCounters() {
+            let count = 0;
+            processedFiles.forEach(f => f.sections.forEach(s => s.rows.forEach(r => {
+                if (!r.oflevel || !r.usage || !r.priceRaw) count++;
+            })));
+            updateIncompleteUI(count);
+        }
+
+        function updateIncompleteUI(incompleteCount) {
+            const box = document.getElementById('incompleteStatBox');
+            const label = document.getElementById('incompleteStatLabel');
+            const val = document.getElementById('statIncomplete');
+            const unit = document.getElementById('statIncompleteUnit');
+            const badge = document.getElementById('badgeIncompleteCount');
+
+            if (incompleteCount > 0) {
+                box.className = 'bg-amber-50/90 border border-amber-200 rounded-xl px-4 py-2.5 transition-colors';
+                label.className = 'text-[11px] font-medium text-amber-700 block';
+                label.textContent = 'แถวที่ข้อมูลไม่ครบ';
+                val.className = 'font-heading font-bold text-xl text-amber-700';
+                val.textContent = incompleteCount.toLocaleString();
+                unit.className = 'text-xs text-amber-600';
+                unit.textContent = 'แถว';
+
+                badge.textContent = incompleteCount;
+                badge.classList.remove('hidden');
+            } else {
+                box.className = 'bg-emerald-50/70 border border-emerald-100 rounded-xl px-4 py-2.5 transition-colors';
+                label.className = 'text-[11px] font-medium text-emerald-600 block';
+                label.textContent = 'สถานะความครบถ้วน';
+                val.className = 'font-heading font-bold text-xl text-emerald-700';
+                val.textContent = 'สมบูรณ์';
+                unit.className = 'text-xs text-emerald-600';
+                unit.textContent = '100%';
+
+                badge.classList.add('hidden');
             }
         }
 
@@ -591,6 +877,38 @@
             return div.innerHTML;
         }
 
+        // Copy TSV to Clipboard for direct paste into Excel
+        document.getElementById('copyTableBtn').addEventListener('click', async () => {
+            const asNumber = cleanNumberCheck.checked;
+            const lines = [['CONDO_NAME', 'OFLEVEL', 'การใช้ประโยชน์', 'VAL_AMT_P_MET'].join('\t')];
+
+            processedFiles.forEach(fileObj => {
+                fileObj.sections.forEach(sec => {
+                    sec.rows.forEach(r => {
+                        lines.push([
+                            sec.condoName,
+                            r.oflevel,
+                            r.usage,
+                            formatPrice(r.priceRaw, asNumber)
+                        ].join('\t'));
+                    });
+                });
+            });
+
+            if (lines.length <= 1) {
+                showToast('ไม่มีข้อมูลสำหรับคัดลอก', 'warning');
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(lines.join('\n'));
+                showToast(`คัดลอกข้อมูล ${lines.length - 1} แถวลงคลิปบอร์ดแล้ว (วางใน Excel ได้ทันที)`, 'success');
+            } catch (err) {
+                showToast('ไม่สามารถคัดลอกลงคลิปบอร์ดได้', 'error');
+            }
+        });
+
+        // Export Excel (.xlsx)
         document.getElementById('exportBtn').addEventListener('click', () => {
             const asNumber = cleanNumberCheck.checked;
             const exportData = [];
@@ -611,7 +929,7 @@
             });
 
             if (exportData.length <= 1) {
-                alert('ไม่มีข้อมูลสำหรับส่งออก');
+                showToast('ไม่มีข้อมูลสำหรับส่งออก', 'warning');
                 return;
             }
 
@@ -627,7 +945,9 @@
             XLSX.utils.book_append_sheet(wb, ws, 'Condo_Appraisal');
 
             const today = new Date().toISOString().slice(0, 10);
-            XLSX.writeFile(wb, `Condo_Appraisal_${today}.xlsx`);
+            const fileName = `Condo_Appraisal_${today}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+            showToast(`ส่งออกไฟล์ ${fileName} เรียบร้อยแล้ว`, 'success');
         });
     </script>
 </body>
