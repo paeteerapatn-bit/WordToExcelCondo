@@ -292,7 +292,7 @@
                                 <div class="space-x-2 text-xs font-medium">
                                     <button type="button" class="text-emerald-600 hover:underline" onclick="setAll('price',true)">เลือกทั้งหมด</button>
                                     <span class="text-slate-300">|</span>
-                                    <button type="button" class="text-slate-500 hover:underline" onclick="setAll('price',false)">ไม่เลือก</button>
+                                    <button type="button" class="text-emerald-500 hover:underline" onclick="setAll('price',false)">ไม่เลือก</button>
                                 </div>
                             </div>
                             <div id="pickPrice" class="flex flex-wrap gap-x-4 gap-y-1.5 text-xs max-h-40 overflow-auto"></div>
@@ -670,11 +670,31 @@
             return finalUsage;
         }
 
+        function hasBuildingColumn(matrix) {
+            if (!matrix || matrix.length === 0) return false;
+            const searchLimit = Math.min(4, matrix.length);
+            const maxCols = matrix[0].length;
+
+            for (let c = 0; c < maxCols; c++) {
+                let colHeader = '';
+                for (let r = 0; r < searchLimit; r++) {
+                    colHeader += ' ' + (matrix[r][c] || '');
+                }
+                colHeader = colHeader.replace(/\s+/g, ' ').trim();
+                if (colHeader.includes('อาคาร') && !colHeader.includes('อาคารชุด') && !colHeader.includes('ชั้นที่')) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         function parseHtmlTable(tableEl, meta) {
             const rows = tableEl.querySelectorAll('tr');
             let lastTableBuilding = '';
 
             const usageMatrix = expandTableToExactMatrix(tableEl);
+            const tableHasBuildingCol = hasBuildingColumn(usageMatrix);
+
             let usageInfo = detectUsageHeaderInfo(usageMatrix);
             if (usageInfo) {
                 persistentUsageInfo = usageInfo;
@@ -687,7 +707,11 @@
                 const cells = Array.from(tr.querySelectorAll('td, th')).map(c => c.textContent.replace(/\s+/g, ' ').trim());
                 if (cells.length === 0) return;
 
-                if (cells[0].includes('อาคาร') && (cells[1]?.includes('ชั้น') || cells.join('').includes('ราคาประเมิน'))) {
+                const joinedRow = cells.join(' ');
+                if (
+                    (cells[0].includes('อาคาร') && !cells[0].includes('อาคารชุด') && (cells[1]?.includes('ชั้น') || joinedRow.includes('ราคาประเมิน'))) ||
+                    (cells[0].includes('ชั้นที่') && joinedRow.includes('ราคาประเมิน'))
+                ) {
                     return;
                 }
 
@@ -696,33 +720,40 @@
                 let price = '';
                 let usage = '';
 
-                if (cells.length >= 4) {
-                    tableBld = cells[0] || lastTableBuilding;
-                    if (cells[0]) lastTableBuilding = cells[0];
-                    floor = cells[1];
-                    price = cells[2];
-                    usage = cells[3];
-                } else if (cells.length === 3) {
-                    if (cells[0] && !/^\d/.test(cells[0]) && !cells[0].includes('-')) {
-                        tableBld = cells[0];
-                        lastTableBuilding = cells[0];
-                        floor = cells[1];
-                        price = cells[2];
-                        usage = cells[2].includes('ไม่ประเมินราคา') ? 'ไม่ประเมินราคา' : '';
-                    } else {
+                if (tableHasBuildingCol) {
+                    if (cells.length >= 4) {
+                        tableBld = cells[0] || lastTableBuilding;
+                        if (cells[0]) lastTableBuilding = cells[0];
+                        floor = cells[1] || '';
+                        price = cells[2] || '';
+                        usage = cells[3] || '';
+                    } else if (cells.length === 3) {
                         tableBld = lastTableBuilding;
-                        floor = cells[0];
-                        price = cells[1];
-                        usage = cells[2];
+                        floor = cells[0] || '';
+                        price = cells[1] || '';
+                        usage = cells[2] || '';
+                    } else if (cells.length === 2) {
+                        tableBld = lastTableBuilding;
+                        floor = cells[0] || '';
+                        price = cells[1] || '';
+                        usage = price.includes('ไม่ประเมินราคา') ? 'ไม่ประเมินราคา' : '';
                     }
-                } else if (cells.length === 2) {
-                    tableBld = lastTableBuilding;
-                    floor = cells[0];
-                    price = cells[1];
-                    usage = cells[1].includes('ไม่ประเมินราคา') ? 'ไม่ประเมินราคา' : '';
+                } else {
+                    tableBld = '';
+                    if (cells.length >= 3) {
+                        floor = cells[0] || '';
+                        price = cells[1] || '';
+                        usage = cells[2] || '';
+                    } else if (cells.length === 2) {
+                        floor = cells[0] || '';
+                        price = cells[1] || '';
+                        usage = price.includes('ไม่ประเมินราคา') ? 'ไม่ประเมินราคา' : '';
+                    } else if (cells.length === 1) {
+                        floor = cells[0] || '';
+                    }
                 }
 
-                const numPrice = price.replace(/,/g, '');
+                const numPrice = String(price).replace(/,/g, '').trim();
                 const finalPrice = (!isNaN(numPrice) && numPrice !== '') ? Number(numPrice) : price;
 
                 if ((floor || price) && usageInfo && rowIdx > usageInfo.headerEndRow) {
@@ -912,9 +943,9 @@
         function floorTokens(s) {
             s = String(s ?? '').replace(/ชั้นที่|ชั้น/g, '').replace(/เอ/g, 'A').replace(/ใต้ดิน|ใต้ถุน/g, 'B');
             const out = new Set();
-            s.split(/[,\/]/).forEach(t => {
+            s.split(/[,\/]|\s+และ\s+|\s+/).forEach(t => {
                 t = t.trim().toUpperCase();
-                if (!t) return;
+                if (!t || t === 'และ') return;
                 const r = t.match(/^(\d+)\s*-\s*(\d+)$/);
                 if (r && +r[2] - +r[1] < 80) { for (let i = +r[1]; i <= +r[2]; i++) out.add(String(i)); }
                 else out.add(t.replace(/\s/g, ''));
@@ -1148,7 +1179,7 @@
                     if (cols.nKeys >= 2 && p) {
                         const mFloors = floorTokens(row[cols.mFloor]);
                         const pFloors = p.ft;
-                        if (!intersects(mFloors, pFloors)) diffs.push('ชั้นไม่ตรง');
+                        if (!sameSet(mFloors, pFloors)) diffs.push('ชั้นไม่ตรง');
                     }
                     if (cols.nKeys >= 3 && p) {
                         const mB = baseName(row[cols.mBld]);
