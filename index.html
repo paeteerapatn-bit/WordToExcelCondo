@@ -178,7 +178,7 @@
                     <table class="w-full text-sm text-left border-collapse">
                         <thead class="bg-slate-900 text-slate-100 text-xs uppercase tracking-wider">
                             <tr>
-                                <th class="px-3 py-3.5 border-r border-slate-800 w-12 text-center">#</th>
+                                <th class="px-3 py-3.5 border-r border-slate-800 w-24 text-center">ลำดับเพิ่มเติม</th>
                                 <th class="px-3 py-3.5 border-r border-slate-800">ชื่ออาคารชุด</th>
                                 <th class="px-3 py-3.5 border-r border-slate-800 bg-indigo-950 text-indigo-200">เลขทะเบียน</th>
                                 <th class="px-3 py-3.5 border-r border-slate-800">อำเภอ/เขต</th>
@@ -473,6 +473,13 @@
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         let extractedData = [];
 
+        function pushExtractedRow(item) {
+            extractedData.push({
+                seqNo: extractedData.length + 1,
+                ...item
+            });
+        }
+
         async function handleFiles(files) {
             if (!files || files.length === 0) return;
 
@@ -763,7 +770,7 @@
                 }
 
                 if (floor || price) {
-                    extractedData.push({
+                    pushExtractedRow({
                         condoName: meta.condoName,
                         regNo: meta.regNo,
                         district: meta.district,
@@ -819,7 +826,7 @@
                     if (rowMatch && !line.includes('ตั้งแต่วันที่') && !line.includes('ประกาศ')) {
                         if (rowMatch[1] && rowMatch[1].length < 15) lastTableBld = rowMatch[1].trim();
                         const numPrice = rowMatch[3].replace(/,/g, '');
-                        extractedData.push({
+                        pushExtractedRow({
                             condoName: currentMeta.condoName,
                             regNo: currentMeta.regNo,
                             district: currentMeta.district,
@@ -848,7 +855,7 @@
 
             tbody.innerHTML = extractedData.map((row, index) => `
                 <tr class="hover:bg-indigo-50/40 transition-colors">
-                    <td class="px-3 py-2.5 border-r border-slate-100 text-center text-slate-400 tabular-nums">${index + 1}</td>
+                    <td class="px-3 py-2.5 border-r border-slate-100 text-center text-slate-500 font-semibold tabular-nums">${row.seqNo ?? (index + 1)}</td>
                     <td class="px-3 py-2.5 border-r border-slate-100 font-medium text-slate-900">${row.condoName}</td>
                     <td class="px-3 py-2.5 border-r border-slate-100 font-semibold text-indigo-700 bg-indigo-50/30 tabular-nums">${row.regNo || '<span class="text-slate-300">-</span>'}</td>
                     <td class="px-3 py-2.5 border-r border-slate-100">${row.district}</td>
@@ -863,7 +870,7 @@
 
         function getFormattedExtractedRows() {
             return extractedData.map((r, i) => ({
-                'ลำดับ': i + 1,
+                'ลำดับเพิ่มเติม': r.seqNo ?? (i + 1),
                 'ชื่ออาคารชุด': r.condoName,
                 'เลขทะเบียน': r.regNo,
                 'อำเภอ/เขต': r.district,
@@ -883,7 +890,7 @@
             const ws = XLSX.utils.json_to_sheet(wsData);
 
             ws['!cols'] = [
-                { wch: 8 },
+                { wch: 14 },
                 { wch: 40 },
                 { wch: 15 },
                 { wch: 18 },
@@ -979,15 +986,17 @@
 
         function matchRows(mainRows, priceRows, cols, threshold = 0.85) {
             const groups = new Map();
-            priceRows.forEach(r => {
+            priceRows.forEach((r, idx) => {
                 let bld = r[cols.pBld], floor = r[cols.pFloor], price = r[cols.pPrice], use = r[cols.pUse];
                 const empty = v => v === '' || v == null;
                 if (!empty(price) && !isNumLike(price) && (!cols.pUse || empty(use))) { use = price; price = floor; floor = bld; bld = ''; }
                 const key = baseName(r[cols.pName]);
                 if (!key) return;
                 if (!groups.has(key)) groups.set(key, []);
+                const seqCol = state.price.headers.find(h => /^(ลำดับเพิ่มเติม|ลำดับที่|ลำดับ)$/i.test(h.trim()));
+                const rowSeq = (seqCol && r[seqCol] !== '' && r[seqCol] != null) ? r[seqCol] : (idx + 1);
                 groups.get(key).push({
-                    raw: r, bld, floor, price, use,
+                    raw: r, seqNo: rowSeq, bld, floor, price, use,
                     bt: new Set([...bldTokens(bld), ...nameBld(r[cols.pName])]),
                     ft: floorTokens(floor), uc: useClass(use)
                 });
@@ -1120,6 +1129,7 @@
         }
 
         const pName = h => state.main.headers.includes(h) ? h + '_บัญชีราคา' : h;
+        const seqOutName = () => state.main.headers.includes('ลำดับเพิ่มเติม') ? 'ลำดับเพิ่มเติม_บัญชีราคา' : 'ลำดับเพิ่มเติม';
 
         function renderPicker() {
             document.getElementById('colPicker').classList.toggle('hidden', !(state.main.wb || state.price.wb));
@@ -1162,10 +1172,12 @@
             const cols = getCols();
             const { out, matched } = matchRows(state.main.data, state.price.data, cols);
             const fixed = { [cols.pBld]: 'bld', [cols.pFloor]: 'floor', [cols.pPrice]: 'price', [cols.pUse]: 'use' };
+            const seqColName = seqOutName();
 
             state.merged = state.main.data.map((row, i) => {
                 const p = out[i].price, r = { ...row };
                 state.price.headers.forEach(h => { r[pName(h)] = p ? (fixed[h] ? p[fixed[h]] : p.raw[h]) : ''; });
+                r[seqColName] = p ? p.seqNo : '';
 
                 let diffText = '-';
                 const status = out[i].status;
@@ -1205,7 +1217,8 @@
         function currentHeaders() {
             const m = state.main.headers.filter(h => state.sel.main.has(h));
             const p = state.price.headers.filter(h => state.sel.price.has(h)).map(pName);
-            const extras = [];
+            const seqColName = seqOutName();
+            const extras = [seqColName];
             if (state.showStatus) extras.push('ผลการจับคู่');
             extras.push('รายละเอียดความแตกต่าง');
             return { all: [...m, ...p, ...extras], nMain: m.length };
@@ -1223,7 +1236,38 @@
 
         function downloadMergedExcel() {
             const { all } = currentHeaders();
-            const ws = XLSX.utils.json_to_sheet(state.merged, { header: all });
+            const cleanRows = state.merged.map(r => {
+                const obj = {};
+                all.forEach(h => {
+                    let val = r[h] ?? '';
+                    if (typeof val === 'string' && /^[\d,]+(\.\d+)?$/.test(val.trim())) {
+                        const num = Number(val.replace(/,/g, ''));
+                        if (!Number.isNaN(num)) val = num;
+                    }
+                    obj[h] = val;
+                });
+                return obj;
+            });
+
+            const ws = XLSX.utils.json_to_sheet(cleanRows, { header: all });
+
+            // จัดความกว้างคอลัมน์อัตโนมัติให้อ่านง่าย ไม่เบียดหรือล้นเกินไป
+            ws['!cols'] = all.map(h => {
+                const sampleMax = cleanRows.slice(0, 200).reduce((mx, row) => {
+                    const len = String(row[h] ?? '').length;
+                    return Math.max(mx, len);
+                }, String(h).length);
+                const width = Math.min(Math.max(sampleMax + 4, 12), 45);
+                return { wch: width };
+            });
+
+            // ตั้งความสูงแถวหัวตาราง + เปิด AutoFilter + ตรึงแถวหัวตาราง
+            ws['!rows'] = [{ hpt: 24 }];
+            if (ws['!ref']) {
+                ws['!autofilter'] = { ref: ws['!ref'] };
+            }
+            ws['!freeze'] = { xSplit: 0, ySplit: 1, topLeftCell: 'A2', activeCell: 'A2', state: 'frozen' };
+
             const wb = XLSX.utils.book_new();
             const name = document.getElementById('sheet_main').value || 'ผลลัพธ์';
             XLSX.utils.book_append_sheet(wb, ws, `${name}_เชื่อมราคา`.slice(0, 31));
