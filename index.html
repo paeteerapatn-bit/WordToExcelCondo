@@ -186,12 +186,13 @@
                                 <th class="px-3 py-3.5 border-r border-slate-800 text-center">อาคาร</th>
                                 <th class="px-3 py-3.5 border-r border-slate-800 text-center">ชั้นที่</th>
                                 <th class="px-3 py-3.5 border-r border-slate-800 text-right">ราคาประเมิน (บาท/ตร.ม.)</th>
-                                <th class="px-3 py-3.5">การใช้ประโยชน์</th>
+                                <th class="px-3 py-3.5 border-r border-slate-800">การใช้ประโยชน์</th>
+                                <th class="px-3 py-3.5">UNIT_NO</th>
                             </tr>
                         </thead>
                         <tbody id="previewBody" class="divide-y divide-slate-100">
                             <tr>
-                                <td colspan="9" class="px-6 py-16 text-center text-slate-400">
+                                <td colspan="10" class="px-6 py-16 text-center text-slate-400">
                                     ยังไม่มีข้อมูล กรุณาอัปโหลดไฟล์ .docx หรือ .pdf ด้านบน
                                 </td>
                             </tr>
@@ -292,7 +293,7 @@
                                 <div class="space-x-2 text-xs font-medium">
                                     <button type="button" class="text-emerald-600 hover:underline" onclick="setAll('price',true)">เลือกทั้งหมด</button>
                                     <span class="text-slate-300">|</span>
-                                    <button type="button" class="text-emerald-500 hover:underline" onclick="setAll('price',false)">ไม่เลือก</button>
+                                    <button type="button" class="text-slate-500 hover:underline" onclick="setAll('price',false)">ไม่เลือก</button>
                                 </div>
                             </div>
                             <div id="pickPrice" class="flex flex-wrap gap-x-4 gap-y-1.5 text-xs max-h-40 overflow-auto"></div>
@@ -384,7 +385,7 @@
 
             document.getElementById('previewBody').innerHTML = `
                 <tr>
-                    <td colspan="9" class="px-6 py-16 text-center text-slate-400">
+                    <td colspan="10" class="px-6 py-16 text-center text-slate-400">
                         ยังไม่มีข้อมูล กรุณาอัปโหลดไฟล์ .docx หรือ .pdf ด้านบน
                     </td>
                 </tr>`;
@@ -473,10 +474,35 @@
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         let extractedData = [];
 
+        // แยกคอลัมน์ "การใช้ประโยชน์" เดิมเลียนแบบสูตร Excel:
+        // การใช้ประโยชน์: =IF(ISNUMBER(FIND("เลขที่", I2)), TRIM(LEFT(I2, FIND("เลขที่", I2)-1)) & IFERROR(MID(I2, FIND("/พื้นที่", I2), LEN(I2)), ""), I2)
+        // UNIT_NO: =IF(ISNUMBER(FIND("เลขที่", I2)), TRIM(MID(I2, FIND("เลขที่", I2)+6, IFERROR(FIND("/พื้นที่", I2), LEN(I2)+1) - (FIND("เลขที่", I2)+6))), "")
+        function splitUsageAndUnitNo(rawUsage) {
+            const s = String(rawUsage ?? '');
+            const idx = s.indexOf('เลขที่');
+            if (idx === -1) {
+                return { usage: s, unitNo: '' };
+            }
+
+            const leftPart = s.slice(0, idx).trim();
+            const areaIdx = s.indexOf('/พื้นที่');
+            const midPart = areaIdx !== -1 ? s.slice(areaIdx) : '';
+            const usage = (leftPart + midPart).trim();
+
+            const start = idx + 6; // ความยาวคำว่า "เลขที่" ในสูตร Excel (+6)
+            const end = areaIdx !== -1 ? areaIdx : s.length;
+            const unitNo = s.slice(start, end).trim();
+
+            return { usage, unitNo };
+        }
+
         function pushExtractedRow(item) {
+            const { usage, unitNo } = splitUsageAndUnitNo(item.usage);
             extractedData.push({
                 seqNo: extractedData.length + 1,
-                ...item
+                ...item,
+                usage,
+                unitNo
             });
         }
 
@@ -845,7 +871,7 @@
         function renderTable() {
             const tbody = document.getElementById('previewBody');
             if (extractedData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="9" class="px-6 py-10 text-center text-rose-500 font-medium">ไม่พบข้อมูลตารางในไฟล์ที่เลือก</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="10" class="px-6 py-10 text-center text-rose-500 font-medium">ไม่พบข้อมูลตารางในไฟล์ที่เลือก</td></tr>`;
                 return;
             }
 
@@ -863,7 +889,8 @@
                     <td class="px-3 py-2.5 border-r border-slate-100 text-center">${row.tableBuilding}</td>
                     <td class="px-3 py-2.5 border-r border-slate-100 text-center tabular-nums">${row.floor}</td>
                     <td class="px-3 py-2.5 border-r border-slate-100 text-right font-mono tabular-nums">${typeof row.price === 'number' ? row.price.toLocaleString() : row.price}</td>
-                    <td class="px-3 py-2.5">${row.usage}</td>
+                    <td class="px-3 py-2.5 border-r border-slate-100">${row.usage}</td>
+                    <td class="px-3 py-2.5 tabular-nums">${row.unitNo || ''}</td>
                 </tr>
             `).join('');
         }
@@ -879,6 +906,7 @@
                 'ชั้นที่': r.floor,
                 'ราคาประเมิน (บาท/ตร.ม.)': r.price,
                 'การใช้ประโยชน์': r.usage,
+                'UNIT_NO': r.unitNo || '',
                 'ไฟล์ต้นทาง': r.sourceFile
             }));
         }
@@ -899,6 +927,7 @@
                 { wch: 12 },
                 { wch: 22 },
                 { wch: 30 },
+                { wch: 18 },
                 { wch: 25 }
             ];
 
@@ -1276,3 +1305,4 @@
     </script>
 </body>
 </html>
+```[cite: 1]
